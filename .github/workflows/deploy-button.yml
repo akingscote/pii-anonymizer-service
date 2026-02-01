@@ -1,0 +1,30 @@
+name: Generate ARM Template
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/**'
+
+jobs:
+  generate-arm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ARM template from Bicep
+        run: |
+          az bicep build --file deploy/main.bicep --outfile deploy/azuredeploy.json
+
+      - name: Commit ARM template
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add deploy/azuredeploy.json
+          git diff --staged --quiet || git commit -m "chore: regenerate ARM template from Bicep"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}

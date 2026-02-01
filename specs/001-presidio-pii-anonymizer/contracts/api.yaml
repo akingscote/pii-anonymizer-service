@@ -1,0 +1,569 @@
+openapi: 3.0.3
+info:
+  title: PII Anonymizer API
+  description: |
+    Offline PII detection and anonymization service using Microsoft Presidio.
+    Provides consistent substitution - the same PII value always maps to the same substitute.
+  version: 1.0.0
+  contact:
+    name: PII Anonymizer
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Anonymization
+    description: PII detection and anonymization operations
+  - name: Configuration
+    description: Anonymization settings management
+  - name: Statistics
+    description: Substitution statistics and metadata
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /anonymize:
+    post:
+      summary: Anonymize text
+      description: |
+        Detect and anonymize PII in the provided text. Uses consistent substitution -
+        if the same PII was seen before, the same substitute is returned.
+      operationId: anonymizeText
+      tags:
+        - Anonymization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnonymizeRequest'
+      responses:
+        '200':
+          description: Text successfully anonymized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnonymizeResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /anonymize/batch:
+    post:
+      summary: Batch anonymize texts
+      description: |
+        Anonymize multiple text strings in a single request. More efficient than
+        multiple single requests due to reduced overhead.
+      operationId: batchAnonymizeTexts
+      tags:
+        - Anonymization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchAnonymizeRequest'
+      responses:
+        '200':
+          description: Texts successfully anonymized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchAnonymizeResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /config:
+    get:
+      summary: Get current configuration
+      description: Returns the currently active anonymization configuration.
+      operationId: getConfig
+      tags:
+        - Configuration
+      responses:
+        '200':
+          description: Current configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigResponse'
+    put:
+      summary: Update configuration
+      description: |
+        Update the anonymization configuration. Changes take effect immediately
+        for subsequent anonymization requests.
+      operationId: updateConfig
+      tags:
+        - Configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigUpdateRequest'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigResponse'
+        '400':
+          description: Invalid configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /config/entity-types:
+    get:
+      summary: List available entity types
+      description: Returns all entity types supported by the analyzer.
+      operationId: listEntityTypes
+      tags:
+        - Configuration
+      responses:
+        '200':
+          description: List of entity types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityTypesResponse'
+
+  /stats:
+    get:
+      summary: Get substitution statistics
+      description: Returns aggregate statistics about all PII mappings.
+      operationId: getStats
+      tags:
+        - Statistics
+      responses:
+        '200':
+          description: Statistics summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+  /stats/{entity_type}:
+    get:
+      summary: Get statistics for entity type
+      description: Returns statistics for a specific entity type.
+      operationId: getStatsByEntityType
+      tags:
+        - Statistics
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            example: PERSON
+      responses:
+        '200':
+          description: Entity type statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityTypeStatsResponse'
+        '404':
+          description: Entity type not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stats/export:
+    get:
+      summary: Export statistics
+      description: Export substitution statistics in CSV format for compliance reporting.
+      operationId: exportStats
+      tags:
+        - Statistics
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, json]
+            default: csv
+      responses:
+        '200':
+          description: Exported statistics
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+        version:
+          type: string
+          example: "1.0.0"
+        database_connected:
+          type: boolean
+        mappings_count:
+          type: integer
+
+    AnonymizeRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Text to anonymize
+          maxLength: 1000000
+          example: "John Smith's email is john.smith@example.com"
+        entity_types:
+          type: array
+          items:
+            type: string
+          description: Entity types to detect (null = use config)
+          example: ["PERSON", "EMAIL_ADDRESS"]
+        confidence_threshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Minimum confidence score (null = use config)
+          example: 0.7
+
+    AnonymizeResponse:
+      type: object
+      required:
+        - anonymized_text
+        - substitutions
+        - metadata
+      properties:
+        anonymized_text:
+          type: string
+          description: Text with PII replaced
+          example: "Jane Doe's email is user_abc123@anon.local"
+        substitutions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Substitution'
+        metadata:
+          $ref: '#/components/schemas/AnonymizeMetadata'
+
+    Substitution:
+      type: object
+      required:
+        - start
+        - end
+        - entity_type
+        - original_length
+        - substitute
+      properties:
+        start:
+          type: integer
+          description: Start position in original text
+        end:
+          type: integer
+          description: End position in original text
+        entity_type:
+          type: string
+          description: Type of PII detected
+        original_length:
+          type: integer
+          description: Length of original PII value
+        substitute:
+          type: string
+          description: Replacement value used
+
+    AnonymizeMetadata:
+      type: object
+      required:
+        - entities_detected
+        - entities_anonymized
+        - processing_time_ms
+      properties:
+        entities_detected:
+          type: integer
+          description: Number of PII entities found
+        entities_anonymized:
+          type: integer
+          description: Number of entities replaced
+        new_mappings_created:
+          type: integer
+          description: New PII values encountered
+        existing_mappings_used:
+          type: integer
+          description: Previously seen PII values
+        processing_time_ms:
+          type: integer
+          description: Processing time in milliseconds
+
+    BatchAnonymizeRequest:
+      type: object
+      required:
+        - texts
+      properties:
+        texts:
+          type: array
+          items:
+            type: string
+          maxItems: 1000
+          description: List of texts to anonymize
+        entity_types:
+          type: array
+          items:
+            type: string
+          description: Entity types to detect (null = use config)
+        confidence_threshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Minimum confidence score (null = use config)
+
+    BatchAnonymizeResponse:
+      type: object
+      required:
+        - results
+        - batch_metadata
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnonymizeResponse'
+        batch_metadata:
+          type: object
+          required:
+            - total_texts
+            - total_entities_detected
+            - total_processing_time_ms
+          properties:
+            total_texts:
+              type: integer
+            total_entities_detected:
+              type: integer
+            total_processing_time_ms:
+              type: integer
+
+    ConfigResponse:
+      type: object
+      required:
+        - id
+        - name
+        - confidence_threshold
+        - language
+        - entity_types
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        confidence_threshold:
+          type: number
+          format: float
+        language:
+          type: string
+        entity_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityTypeConfig'
+
+    ConfigUpdateRequest:
+      type: object
+      properties:
+        confidence_threshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        language:
+          type: string
+          pattern: '^[a-z]{2}$'
+        entity_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityTypeConfigUpdate'
+
+    EntityTypeConfig:
+      type: object
+      required:
+        - entity_type
+        - enabled
+        - strategy
+      properties:
+        entity_type:
+          type: string
+        enabled:
+          type: boolean
+        strategy:
+          type: string
+          enum: [replace, mask, hash, redact]
+        strategy_params:
+          type: object
+          additionalProperties: true
+
+    EntityTypeConfigUpdate:
+      type: object
+      required:
+        - entity_type
+      properties:
+        entity_type:
+          type: string
+        enabled:
+          type: boolean
+        strategy:
+          type: string
+          enum: [replace, mask, hash, redact]
+        strategy_params:
+          type: object
+          additionalProperties: true
+
+    EntityTypesResponse:
+      type: object
+      required:
+        - entity_types
+      properties:
+        entity_types:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - description
+            properties:
+              name:
+                type: string
+                example: PERSON
+              description:
+                type: string
+                example: Names of people
+
+    StatsResponse:
+      type: object
+      required:
+        - total_mappings
+        - total_substitutions
+        - by_entity_type
+      properties:
+        total_mappings:
+          type: integer
+          description: Total unique PII values tracked
+        total_substitutions:
+          type: integer
+          description: Total substitution operations performed
+        by_entity_type:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityTypeStats'
+        oldest_mapping:
+          type: string
+          format: date-time
+        newest_mapping:
+          type: string
+          format: date-time
+
+    EntityTypeStats:
+      type: object
+      required:
+        - entity_type
+        - unique_values
+        - total_substitutions
+      properties:
+        entity_type:
+          type: string
+        unique_values:
+          type: integer
+        total_substitutions:
+          type: integer
+
+    EntityTypeStatsResponse:
+      type: object
+      required:
+        - entity_type
+        - unique_values
+        - total_substitutions
+        - substitutes
+      properties:
+        entity_type:
+          type: string
+        unique_values:
+          type: integer
+        total_substitutions:
+          type: integer
+        substitutes:
+          type: array
+          items:
+            type: object
+            properties:
+              substitute:
+                type: string
+              count:
+                type: integer
+              first_seen:
+                type: string
+                format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
