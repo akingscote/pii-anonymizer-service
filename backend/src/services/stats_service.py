@@ -1,7 +1,7 @@
 """Statistics service for aggregate substitution statistics."""
 
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session

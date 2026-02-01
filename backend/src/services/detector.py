@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern, RecognizerResult
+from presidio_analyzer import AnalyzerEngine, Pattern, PatternRecognizer, RecognizerResult
 
 
 @dataclass

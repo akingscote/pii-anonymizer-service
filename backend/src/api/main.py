@@ -1,7 +1,6 @@
 """FastAPI application instance and configuration."""
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -68,11 +67,11 @@ app.add_middleware(
 )
 
 # Import and register API routes
-from backend.src.api.routes.health import router as health_router  # noqa: E402
 from backend.src.api.routes.anonymize import router as anonymize_router  # noqa: E402
 from backend.src.api.routes.config import router as config_router  # noqa: E402
-from backend.src.api.routes.stats import router as stats_router  # noqa: E402
+from backend.src.api.routes.health import router as health_router  # noqa: E402
 from backend.src.api.routes.mappings import router as mappings_router  # noqa: E402
+from backend.src.api.routes.stats import router as stats_router  # noqa: E402
 
 app.include_router(health_router, tags=["Health"])
 app.include_router(anonymize_router, tags=["Anonymization"])

@@ -4,9 +4,8 @@ import hashlib
 import ipaddress
 import random
 import re
-from typing import Callable
-
 import uuid
+from collections.abc import Callable
 
 from faker import Faker
 
@@ -116,7 +115,7 @@ def _detect_name_country(name: str) -> str | None:
                     if c:
                         code = c.alpha_2
                         country_scores[code] = country_scores.get(code, 0) + score
-                except:
+                except Exception:
                     pass
 
         # Check last name data
@@ -129,7 +128,7 @@ def _detect_name_country(name: str) -> str | None:
                     if c:
                         code = c.alpha_2
                         country_scores[code] = country_scores.get(code, 0) + score
-                except:
+                except Exception:
                     pass
 
     if not country_scores:
@@ -230,7 +229,7 @@ def is_network_address(ip_str: str) -> tuple[bool, int | None]:
         prefix_len = int(parts[1])
 
         # Parse as network - this will fail if it's a host IP with CIDR
-        network = ipaddress.ip_network(ip_str, strict=True)
+        ipaddress.ip_network(ip_str, strict=True)
         # If we get here, it's a valid network address
         return True, prefix_len
     except ValueError:

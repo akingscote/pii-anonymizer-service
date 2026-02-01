@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from backend.src.generators.synthetic import SyntheticGenerator, get_generator
 from backend.src.models import AuditLog
-from backend.src.services.detector import DetectionResult, PIIDetector, get_detector
+from backend.src.services.detector import PIIDetector, get_detector
 from backend.src.services.mapping_store import MappingStore
 from backend.src.services.operators.consistent_replace import ConsistentReplaceOperator
 

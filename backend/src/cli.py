@@ -3,9 +3,8 @@
 import argparse
 import sys
 
-from backend.src.database import init_db, get_db_context
+from backend.src.database import get_db_context, init_db
 from backend.src.models import AnonymizationConfig, EntityTypeConfig
-
 
 # Default entity types to enable
 DEFAULT_ENTITY_TYPES = [

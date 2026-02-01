@@ -15,6 +15,7 @@ def verify_indexes():
     performance-critical indexes are in place.
     """
     from sqlalchemy import inspect
+
     from backend.src.database import engine
 
     inspector = inspect(engine)

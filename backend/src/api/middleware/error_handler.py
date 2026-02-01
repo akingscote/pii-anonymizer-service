@@ -1,6 +1,7 @@
 """Error handling middleware for structured error responses."""
 
 import logging
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
