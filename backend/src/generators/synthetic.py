@@ -454,6 +454,7 @@ class SyntheticGenerator:
             "IBAN_CODE": self._generate_iban,
             "CRYPTO": self._generate_crypto,
             "GUID": self._generate_guid,
+            "COORDINATE": self._generate_coordinate,
         }
 
     @property
@@ -666,6 +667,32 @@ class SyntheticGenerator:
     def _generate_guid(self, original: str | None = None) -> str:
         """Generate a GUID/UUID."""
         return str(uuid.uuid4())
+
+    def _generate_coordinate(self, original: str | None = None) -> str:
+        """Generate a realistic coordinate (latitude or longitude).
+
+        Uses geonamescache to get real city coordinates for realism.
+        Attempts to detect if input is latitude vs longitude based on range.
+        """
+        location = self.generate_location_with_coordinates()
+
+        # Try to determine if this is latitude or longitude based on value range
+        if original:
+            try:
+                val = float(original)
+                # Latitude range: -90 to 90, Longitude range: -180 to 180
+                # If absolute value > 90, it must be longitude
+                if abs(val) > 90:
+                    return str(location["longitude"])
+                # If value is clearly in latitude range (small values more likely lat)
+                # This is a heuristic - both could be valid for small values
+                elif abs(val) <= 90:
+                    return str(location["latitude"])
+            except (ValueError, TypeError):
+                pass
+
+        # Default to latitude if we can't determine
+        return str(location["latitude"])
 
     def _generate_street_address(self, original: str | None = None) -> str:
         """Generate a street address."""

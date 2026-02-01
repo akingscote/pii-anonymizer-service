@@ -16,7 +16,6 @@
 │       └── services/
 ├── static/                  # Built frontend assets
 ├── data/                    # SQLite database
-├── deploy/                  # Azure Bicep templates
 ├── Dockerfile
 ├── docker-compose.yml
 └── requirements.txt

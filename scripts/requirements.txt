@@ -1,0 +1,4 @@
+# Requirements for log dump and anonymization scripts
+azure-identity>=1.15.0
+azure-monitor-query>=1.3.0
+requests>=2.31.0

@@ -192,6 +192,35 @@ def _create_guid_recognizer() -> PatternRecognizer:
     )
 
 
+def _create_coordinate_recognizer() -> PatternRecognizer:
+    """Create a recognizer for geographic coordinates (latitude/longitude)."""
+    patterns = [
+        # Decimal degrees with high precision (likely GPS coordinates)
+        # Latitude: -90 to 90, Longitude: -180 to 180
+        # Matches values like 51.500789642333984 or -0.584630012512207
+        # High precision (6+ decimals) is almost certainly GPS data
+        Pattern(
+            name="coordinate_decimal",
+            regex=r"-?\d{1,3}\.\d{6,}",
+            score=0.85,  # High score - 6+ decimal precision is very likely GPS
+        ),
+    ]
+
+    # Context words that increase confidence
+    context_words = [
+        "latitude", "lat", "longitude", "lng", "long", "lon",
+        "coordinates", "coord", "coords", "geo", "geoCoordinates",
+        "location", "position", "gps",
+    ]
+
+    return PatternRecognizer(
+        supported_entity="COORDINATE",
+        patterns=patterns,
+        context=context_words,
+        name="CoordinateRecognizer",
+    )
+
+
 def _create_enhanced_phone_recognizer() -> PatternRecognizer:
     """Create an enhanced phone recognizer with context awareness for better detection."""
     patterns = [
@@ -256,6 +285,7 @@ class PIIDetector:
         "IBAN_CODE",
         "CRYPTO",
         "GUID",  # Custom recognizer for GUIDs/UUIDs
+        "COORDINATE",  # Custom recognizer for lat/long coordinates
     ]
 
     def __init__(self, language: str = "en"):
@@ -275,6 +305,7 @@ class PIIDetector:
         self._analyzer.registry.add_recognizer(_create_enhanced_date_recognizer())
         self._analyzer.registry.add_recognizer(_create_guid_recognizer())
         self._analyzer.registry.add_recognizer(_create_compound_location_recognizer())
+        self._analyzer.registry.add_recognizer(_create_coordinate_recognizer())
 
     @property
     def language(self) -> str:
@@ -352,6 +383,7 @@ class PIIDetector:
             "IBAN_CODE": "International Bank Account Numbers",
             "CRYPTO": "Cryptocurrency addresses",
             "GUID": "Globally Unique Identifiers (GUIDs/UUIDs)",
+            "COORDINATE": "Geographic coordinates (latitude/longitude)",
         }
 
         return [

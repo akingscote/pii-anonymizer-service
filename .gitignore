@@ -85,4 +85,5 @@ frontend/build/
 *.db
 *.sqlite
 *.sqlite3
-data/
+
+.ruff_cache

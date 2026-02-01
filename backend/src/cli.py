@@ -18,6 +18,7 @@ DEFAULT_ENTITY_TYPES = [
     ("STREET_ADDRESS", "replace", None),
     ("DATE_TIME", "replace", None),
     ("GUID", "replace", None),
+    ("COORDINATE", "replace", None),
 ]
 
 
